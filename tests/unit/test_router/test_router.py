@@ -6043,6 +6043,46 @@ async def test_async_get_healthy_deployments_counts_tokens_off_the_event_loop(mo
     assert counting_threads[0] is not threading.current_thread()
 
 
+def _ocr_deployment(region: str, *, pass_through: bool = False) -> dict:
+    return {
+        "model_name": "ocr",
+        "litellm_params": {
+            "model": "mistral/mistral-ocr-latest",
+            "api_key": "fake-key",
+            "region_name": region,
+            "use_in_pass_through": pass_through,
+        },
+        "model_info": {"id": f"ocr-{region}"},
+    }
+
+
+async def test_async_pre_call_checks_filter_region_without_messages_or_input():
+    """
+    OCR, rerank and the other non-chat calls pass neither messages nor input. The
+    region filter must still drop deployments outside allowed_model_region.
+    """
+    router = litellm.Router(
+        model_list=[_ocr_deployment("eu"), _ocr_deployment("us")],
+        enable_pre_call_checks=True,
+    )
+
+    healthy = await router.async_get_healthy_deployments(model="ocr", request_kwargs={"allowed_model_region": "eu"})
+
+    assert [d["model_info"]["id"] for d in healthy] == ["ocr-eu"]
+
+
+@pytest.mark.parametrize("pass_through", [False, True])
+def test_sync_pre_call_checks_filter_region_without_messages_or_input(pass_through: bool):
+    router = litellm.Router(
+        model_list=[_ocr_deployment("us", pass_through=pass_through)],
+        enable_pre_call_checks=True,
+    )
+    select = router.get_available_deployment_for_pass_through if pass_through else router.get_available_deployment
+
+    with pytest.raises(litellm.RouterRateLimitError):
+        select(model="ocr", request_kwargs={"allowed_model_region": "eu"})
+
+
 @pytest.mark.parametrize(
     "model_info,expected",
     [

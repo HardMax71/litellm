@@ -13706,7 +13706,7 @@ class Router:
             parent_otel_span=parent_otel_span,
         )
 
-        if self.enable_pre_call_checks and (messages is not None or input is not None):
+        if self.enable_pre_call_checks:
             deployments_to_check: Final = healthy_deployments
             healthy_deployments = self._pre_call_checks(
                 model=model,
@@ -14912,7 +14912,7 @@ class Router:
         healthy_deployments = self._filter_blocked_deployments(healthy_deployments)
 
         # filter pre-call checks
-        if self.enable_pre_call_checks and (messages is not None or input is not None):
+        if self.enable_pre_call_checks:
             healthy_deployments = self._pre_call_checks(
                 model=model,
                 healthy_deployments=healthy_deployments,
@@ -15096,7 +15096,7 @@ class Router:
         pass_through_deployments = self._filter_blocked_deployments(pass_through_deployments)
 
         # 5. Apply pre-call checks (if enabled)
-        if self.enable_pre_call_checks and (messages is not None or input is not None):
+        if self.enable_pre_call_checks:
             pass_through_deployments = self._pre_call_checks(
                 model=model,
                 healthy_deployments=pass_through_deployments,
